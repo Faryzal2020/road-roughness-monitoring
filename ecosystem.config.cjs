@@ -4,9 +4,9 @@ module.exports = {
             name: "road-roughness-monitor",
             script: "src/index.js",
             interpreter: "bun", // Use Bun as the interpreter
+            env_file: ".env", // Load environment variables from .env file
             env: {
-                NODE_ENV: "production",
-                PORT: 3010
+                NODE_ENV: "production"
             },
             instances: 1,
             autorestart: true,
