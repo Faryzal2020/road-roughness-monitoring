@@ -1,0 +1,8 @@
+import express from 'express';
+import telemetryRoutes from './routes/telemetry.js';
+import debugRoutes from './routes/debug.js';
+// Dashboard routes will be added later
+
+// ... previous code ...
+// (We need to update src/index.js to USE these routes)
+// But since we are allowed to overwrite/edit files...
