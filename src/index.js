@@ -1,13 +1,14 @@
-import express from 'express';
-import cors from 'cors';
 import dotenv from 'dotenv';
 
+// IMPORTANT: Load environment variables BEFORE any other imports
+dotenv.config();
+
+import express from 'express';
+import cors from 'cors';
 import telemetryRoutes from './routes/telemetry.js';
 import debugRoutes from './routes/debug.js';
 import dashboardRoutes from './routes/dashboard.js';
 import { startTCPServer } from './services/tcp-server.js';
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
