@@ -25,6 +25,22 @@ export async function processTelemetryPacket(parsedPacket, imei) {
     // Map IO elements
     const mappedIO = mapAVLToFields(io);
 
+    // --- LOGGING ---
+    const logTs = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    const dataTs = new Date(timestamp).toISOString().replace('T', ' ').substring(0, 19);
+
+    console.log(`\n[${logTs}] 📡 DATA RX | IMEI: ${imei}`);
+    console.log(`   📅 Timestamp: ${dataTs}`);
+    console.log(`   📍 Location : ${gps.latitude.toFixed(6)}, ${gps.longitude.toFixed(6)} | Alt: ${gps.altitude}m`);
+    console.log(`   💨 Dynamics : Speed: ${gps.speed} km/h | Heading: ${gps.angle}°`);
+
+    // Log accelerometer data if present (Critical for Roughness)
+    if (mappedIO.axisX !== undefined || mappedIO.axisY !== undefined || mappedIO.axisZ !== undefined) {
+      console.log(`   📉 Vibration: X=${mappedIO.axisX || 0} Y=${mappedIO.axisY || 0} Z=${mappedIO.axisZ || 0} (mG)`);
+    }
+    console.log(`   ------------------------------------------------------`);
+    // ----------------
+
     // Assign Segment (Async but we await it here for simplicity, 
     // in high load might want to fire-and-forget or batch)
     const segmentId = await assignRoadSegment(gps.latitude, gps.longitude);
