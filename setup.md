@@ -32,11 +32,19 @@ Prisma might not automatically create the hypertable. If the migration succeeds 
 SELECT create_hypertable('TruckTelemetry', 'timestamp');
 ```
 
-## 5. Build and Start
-Start the server in development mode:
-```powershell
-bun run src/index.js
-```
+## 5. Build and Start (Production with PM2)
+1.  Install PM2 globally (if not already installed):
+    ```bash
+    npm install -g pm2
+    ```
+2.  Start the application using the ecosystem file:
+    ```bash
+    pm2 start ecosystem.config.js
+    ```
+3.  Save the process list to resurrect on reboot:
+    ```bash
+    pm2 save
+    ```
 
 ## 6. Verification
 Once the server is running, the AI agent will test connectivity from the outside.
