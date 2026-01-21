@@ -4,9 +4,25 @@ import pg from 'pg';
 
 const { Pool } = pg;
 
-// Create PostgreSQL connection pool
+// Parse DATABASE_URL manually for better control
+const connectionString = process.env.DATABASE_URL;
+
+if (!connectionString) {
+    throw new Error('DATABASE_URL environment variable is not set');
+}
+
+// Parse the connection string to extract components
+// Format: postgresql://user:password@host:port/database?schema=public
+const url = new URL(connectionString);
+
+// Create PostgreSQL connection pool with explicit configuration
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL
+    user: url.username,
+    password: url.password,
+    host: url.hostname,
+    port: parseInt(url.port || '5432'),
+    database: url.pathname.slice(1), // Remove leading /
+    ssl: false // Set to true if using SSL
 });
 
 // Create Prisma adapter
