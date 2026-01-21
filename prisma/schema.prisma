@@ -5,6 +5,7 @@ generator client {
 
 datasource db {
   provider   = "postgresql"
+  // url removed: configured in prisma.config.ts for Prisma 7
   extensions = [timescaledb]
 }
 
