@@ -1,0 +1,227 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  extensions = [timescaledb]
+}
+
+// Core Models
+
+model Truck {
+  id            Int       @id @default(autoincrement())
+  imei          String    @unique
+  truckId       String    @unique
+  registration  String?
+  make          String?
+  model         String?
+  capacityTons  Decimal?  @db.Decimal(10, 2)
+  status        TruckStatus @default(ACTIVE)
+  
+  telemetry     TruckTelemetry[]
+  events        RoughnessEvent[]
+  alerts        Alert[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([imei])
+}
+
+enum TruckStatus {
+  ACTIVE
+  MAINTENANCE
+  RETIRED
+}
+
+model HaulRoad {
+  id            Int       @id @default(autoincrement())
+  roadName      String
+  roadType      String?
+  startLat      Decimal?  @db.Decimal(10, 6)
+  startLon      Decimal?  @db.Decimal(10, 6)
+  endLat        Decimal?  @db.Decimal(10, 6)
+  endLon        Decimal?  @db.Decimal(10, 6)
+  lengthMeters  Decimal?  @db.Decimal(10, 2)
+  surfaceType   String?
+  speedLimitKmh Int?
+  active        Boolean   @default(true)
+  
+  segments      RoadSegment[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model RoadSegment {
+  id            Int       @id @default(autoincrement())
+  roadId        Int
+  road          HaulRoad  @relation(fields: [roadId], references: [id], onDelete: Cascade)
+  segmentNumber Int
+  startChainageM Decimal? @db.Decimal(10, 2)
+  endChainageM   Decimal? @db.Decimal(10, 2)
+  lengthMeters   Decimal? @db.Decimal(10, 2)
+  avgGradePercent Decimal? @db.Decimal(5, 2)
+  geometryJson   Json?    // GeoJSON LineString
+  
+  stats          RoadSegmentStats[]
+  telemetry      TruckTelemetry[]
+  events         RoughnessEvent[]
+  alerts         Alert[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([roadId, segmentNumber])
+}
+
+// TimescaleDB Hypertable
+model TruckTelemetry {
+  id              BigInt    @id @default(autoincrement())
+  timestamp       DateTime  @default(now())
+  truckId         Int
+  truck           Truck     @relation(fields: [truckId], references: [id], onDelete: Cascade)
+  
+  latitude        Decimal   @db.Decimal(10, 6)
+  longitude       Decimal   @db.Decimal(10, 6)
+  altitude        Int?
+  speed           Int?
+  heading         Int?
+  satellites      Int?
+  hdop            Decimal?  @db.Decimal(4, 2)
+  
+  axisX           Int?      // mG
+  axisY           Int?      // mG
+  axisZ           Int?      // mG
+  
+  ignition        Boolean?
+  movement        Boolean?
+  externalVoltage Int?      // mV
+  batteryVoltage  Int?      // mV
+  din1            Boolean?
+  din2            Boolean?
+  ain1            Int?
+  
+  totalOdometer   BigInt?
+  tripOdometer    Int?
+  gsmSignal       Int?
+  
+  roadSegmentId   Int?
+  roadSegment     RoadSegment? @relation(fields: [roadSegmentId], references: [id])
+  
+  isLoaded        Boolean?
+  rawData         Json?     // Complete AVL packet
+  processed       Boolean   @default(false)
+  
+  createdAt       DateTime  @default(now())
+
+  @@index([truckId, timestamp(sort: Desc)])
+  @@index([roadSegmentId, timestamp(sort: Desc)])
+  @@index([processed])
+}
+
+model RoughnessEvent {
+  id              Int       @id @default(autoincrement())
+  timestamp       DateTime
+  truckId         Int
+  truck           Truck     @relation(fields: [truckId], references: [id], onDelete: Cascade)
+  
+  latitude        Decimal   @db.Decimal(10, 6)
+  longitude       Decimal   @db.Decimal(10, 6)
+  roadSegmentId   Int?
+  roadSegment     RoadSegment? @relation(fields: [roadSegmentId], references: [id])
+  
+  eventType       String?   // pothole, washboard, bump
+  severity        EventSeverity
+  
+  peakZAxis       Int?
+  peakYAxis       Int?
+  peakXAxis       Int?
+  
+  durationMs      Int?
+  speedKmh        Int?
+  isLoaded        Boolean?
+  
+  verified        Boolean   @default(false)
+  maintenanceRequired Boolean @default(false)
+  notes           String?
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([timestamp])
+}
+
+enum EventSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model RoadSegmentStats {
+  id              Int       @id @default(autoincrement())
+  roadSegmentId   Int
+  roadSegment     RoadSegment @relation(fields: [roadSegmentId], references: [id], onDelete: Cascade)
+  date            DateTime  @db.Date
+  
+  totalPasses     Int       @default(0)
+  loadedPasses    Int       @default(0)
+  emptyPasses     Int       @default(0)
+  
+  avgZAxisRms     Decimal?  @db.Decimal(10, 2)
+  stdDevZAxis     Decimal?  @db.Decimal(10, 2)
+  maxZAxis        Int?
+  minZAxis        Int?
+  
+  estimatedIri    Decimal?  @db.Decimal(5, 2)
+  iriCategory     String?   // good, fair, poor, very_poor
+  
+  roughnessEventCount Int   @default(0)
+  criticalEventCount  Int   @default(0)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([roadSegmentId, date])
+}
+
+model Alert {
+  id              Int       @id @default(autoincrement())
+  alertType       String
+  severity        AlertSeverity
+  
+  truckId         Int?
+  truck           Truck?    @relation(fields: [truckId], references: [id])
+  
+  roadSegmentId   Int?
+  roadSegment     RoadSegment? @relation(fields: [roadSegmentId], references: [id])
+  
+  latitude        Decimal?  @db.Decimal(10, 6)
+  longitude       Decimal?  @db.Decimal(10, 6)
+  
+  title           String
+  message         String
+  data            Json?
+  
+  acknowledged    Boolean   @default(false)
+  acknowledgedBy  String?
+  acknowledgedAt  DateTime?
+  
+  resolved        Boolean   @default(false)
+  resolvedAt      DateTime?
+  
+  createdAt       DateTime  @default(now())
+
+  @@index([createdAt])
+  @@index([acknowledged])
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
