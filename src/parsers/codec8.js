@@ -104,8 +104,8 @@ export class Codec8Parser {
 
           let value;
           if (bytesPerValue === 1) value = view.getUint8(offset);
-          else if (bytesPerValue === 2) value = view.getUint16(offset);
-          else if (bytesPerValue === 4) value = view.getUint32(offset);
+          else if (bytesPerValue === 2) value = view.getInt16(offset);
+          else if (bytesPerValue === 4) value = view.getInt32(offset);
           else if (bytesPerValue === 8) value = Number(view.getBigUint64(offset));
 
           offset += bytesPerValue;
