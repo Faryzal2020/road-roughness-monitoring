@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import telemetryRoutes from './routes/telemetry.js';
 import debugRoutes from './routes/debug.js';
 import dashboardRoutes from './routes/dashboard.js';
+import { startTCPServer } from './services/tcp-server.js';
 
 dotenv.config();
 
@@ -28,9 +29,12 @@ app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Start Server
+// Start HTTP Server
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`[HTTP] Server running on port ${PORT}`);
 });
+
+// Start TCP Server for Teltonika Devices
+startTCPServer();
 
 export default app;
