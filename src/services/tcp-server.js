@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import net from 'net';
 import { Codec8Parser } from '../parsers/codec8.js';
 import { processTelemetryPacket } from '../services/telemetry-ingestion.js';
