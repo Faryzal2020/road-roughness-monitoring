@@ -6,7 +6,11 @@ Please follow these steps to configure and start the server.
 Ensure you have **PostgreSQL** installed and running with **TimescaleDB** extension.
 
 ## 2. Environment Setup
-1.  Copy the `.env.example` file to a new file named `.env`.
+1.  **Install Dependencies:**
+    ```powershell
+    bun install
+    ```
+2.  Copy the `.env.example` file to a new file named `.env`.
     ```powershell
     cp .env.example .env
     ```
