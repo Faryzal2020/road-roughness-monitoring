@@ -123,4 +123,100 @@ router.get('/trucks', async (req, res) => {
     }
 });
 
+/**
+ * GET /api/map/heatmap
+ * Returns grid-based aggregated roughness data
+ * Query params:
+ *   - gridSize: Grid cell size in meters (default: 10)
+ *   - minSpeed: Minimum speed filter (default: 3)
+ */
+router.get('/heatmap', async (req, res) => {
+    try {
+        const { gridSize = '10', minSpeed = '3' } = req.query;
+        const gridSizeMeters = parseInt(gridSize);
+        const minSpeedKmh = parseInt(minSpeed);
+
+        // Approximate degrees per meter at equator (adjust for latitude if needed)
+        const metersPerDegree = 111320;
+        const gridSizeDegrees = gridSizeMeters / metersPerDegree;
+
+        // Get all moving telemetry
+        const telemetry = await prisma.truckTelemetry.findMany({
+            where: { speed: { gte: minSpeedKmh } },
+            select: {
+                latitude: true,
+                longitude: true,
+                axisX: true,
+                axisY: true,
+                axisZ: true
+            }
+        });
+
+        // Group into grid cells
+        const grid = new Map();
+
+        telemetry.forEach(point => {
+            const lat = parseFloat(point.latitude);
+            const lon = parseFloat(point.longitude);
+
+            // Calculate grid cell key
+            const cellLat = Math.floor(lat / gridSizeDegrees) * gridSizeDegrees;
+            const cellLon = Math.floor(lon / gridSizeDegrees) * gridSizeDegrees;
+            const key = `${cellLat.toFixed(6)},${cellLon.toFixed(6)}`;
+
+            // Calculate roughness
+            const x = point.axisX || 0;
+            const y = point.axisY || 0;
+            const z = point.axisZ || 0;
+            const magnitude = Math.sqrt(x * x + y * y + z * z);
+            const roughness = Math.abs(magnitude - 1000);
+
+            if (!grid.has(key)) {
+                grid.set(key, {
+                    lat: cellLat + gridSizeDegrees / 2, // Center of cell
+                    lon: cellLon + gridSizeDegrees / 2,
+                    totalRoughness: 0,
+                    count: 0,
+                    maxRoughness: 0
+                });
+            }
+
+            const cell = grid.get(key);
+            cell.totalRoughness += roughness;
+            cell.count++;
+            cell.maxRoughness = Math.max(cell.maxRoughness, roughness);
+        });
+
+        // Convert to array with averages
+        const cells = Array.from(grid.values()).map(cell => ({
+            lat: cell.lat,
+            lon: cell.lon,
+            avgRoughness: Math.round(cell.totalRoughness / cell.count),
+            maxRoughness: Math.round(cell.maxRoughness),
+            pointCount: cell.count,
+            gridSize: gridSizeDegrees
+        }));
+
+        // Calculate bounds
+        const bounds = cells.length > 0 ? {
+            minLat: Math.min(...cells.map(c => c.lat)),
+            maxLat: Math.max(...cells.map(c => c.lat)),
+            minLon: Math.min(...cells.map(c => c.lon)),
+            maxLon: Math.max(...cells.map(c => c.lon))
+        } : null;
+
+        res.json({
+            count: cells.length,
+            gridSizeMeters,
+            bounds,
+            cells
+        });
+
+    } catch (err) {
+        console.error('Heatmap error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 export default router;
+

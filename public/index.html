@@ -1,31 +1,63 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Road Roughness Map</title>
-    
+
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
+    <!-- Leaflet Draw for segment editing -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+
     <link rel="stylesheet" href="css/style.css">
 </head>
+
 <body>
     <div id="app">
         <!-- Header -->
         <header class="header">
             <h1>🛣️ Road Roughness Monitor</h1>
-            <div class="controls">
-                <select id="truckSelect">
-                    <option value="">All Trucks</option>
-                </select>
-                <input type="datetime-local" id="fromDate" />
-                <span>to</span>
-                <input type="datetime-local" id="toDate" />
-                <button id="loadBtn">Load Data</button>
-                <button id="clearBtn">Clear</button>
+            <div class="view-tabs">
+                <button class="tab active" data-view="trace">Raw Trace</button>
+                <button class="tab" data-view="heatmap">Heatmap</button>
+                <button class="tab" data-view="segments">Segments</button>
             </div>
         </header>
+
+        <!-- Controls Bar -->
+        <div class="controls-bar">
+            <!-- Common filters -->
+            <div class="filter-group">
+                <label>Truck:</label>
+                <select id="truckSelect">
+                    <option value="">All</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>From:</label>
+                <input type="datetime-local" id="fromDate" />
+            </div>
+            <div class="filter-group">
+                <label>To:</label>
+                <input type="datetime-local" id="toDate" />
+            </div>
+            <div class="filter-group">
+                <label>Min Speed:</label>
+                <input type="number" id="minSpeed" value="3" min="0" max="50" style="width: 60px" />
+                <span>km/h</span>
+            </div>
+
+            <button id="loadBtn" class="btn-primary">Load Data</button>
+            <button id="clearBtn" class="btn-secondary">Clear</button>
+
+            <!-- Segment-specific controls (hidden by default) -->
+            <div id="segmentControls" class="segment-controls hidden">
+                <button id="generateBtn" class="btn-generate">⚡ Generate Segments</button>
+                <button id="deleteAllBtn" class="btn-danger">🗑️ Delete Generated</button>
+            </div>
+        </div>
 
         <!-- Map Container -->
         <div id="map"></div>
@@ -66,10 +98,19 @@
                 <span class="stat-label">Max Speed</span>
             </div>
         </div>
+
+        <!-- Segment Info Panel -->
+        <div id="segmentInfo" class="segment-info hidden">
+            <h4>Selected Segment</h4>
+            <div id="segmentDetails"></div>
+            <button id="deleteSegmentBtn" class="btn-danger btn-sm">Delete Segment</button>
+        </div>
     </div>
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/map.js"></script>
+    <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+    <script src="js/app.js" type="module"></script>
 </body>
+
 </html>

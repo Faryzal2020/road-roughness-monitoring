@@ -11,6 +11,7 @@ import telemetryRoutes from './routes/telemetry.js';
 import debugRoutes from './routes/debug.js';
 import dashboardRoutes from './routes/dashboard.js';
 import mapRoutes from './routes/map.js';
+import segmentRoutes from './routes/segments.js';
 import { startTCPServer } from './services/tcp-server.js';
 
 // ES Module dirname workaround
@@ -32,6 +33,7 @@ app.use('/api/telemetry', telemetryRoutes);
 app.use('/api/debug', debugRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/map', mapRoutes);
+app.use('/api/segments', segmentRoutes);
 
 // Serve static files from public directory
 app.use(express.static(path.join(__dirname, '../public')));
