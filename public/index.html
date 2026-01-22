@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Road Roughness Map</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="header">
+            <h1>🛣️ Road Roughness Monitor</h1>
+            <div class="controls">
+                <select id="truckSelect">
+                    <option value="">All Trucks</option>
+                </select>
+                <input type="datetime-local" id="fromDate" />
+                <span>to</span>
+                <input type="datetime-local" id="toDate" />
+                <button id="loadBtn">Load Data</button>
+                <button id="clearBtn">Clear</button>
+            </div>
+        </header>
+
+        <!-- Map Container -->
+        <div id="map"></div>
+
+        <!-- Legend -->
+        <div class="legend">
+            <h4>Road Roughness</h4>
+            <div class="legend-item">
+                <span class="color-box smooth"></span>
+                <span>Smooth (0-100)</span>
+            </div>
+            <div class="legend-item">
+                <span class="color-box light"></span>
+                <span>Light bumps (100-300)</span>
+            </div>
+            <div class="legend-item">
+                <span class="color-box moderate"></span>
+                <span>Moderate (300-500)</span>
+            </div>
+            <div class="legend-item">
+                <span class="color-box severe"></span>
+                <span>Severe (500+)</span>
+            </div>
+        </div>
+
+        <!-- Stats Panel -->
+        <div class="stats-panel">
+            <div class="stat">
+                <span class="stat-value" id="totalPoints">0</span>
+                <span class="stat-label">Points</span>
+            </div>
+            <div class="stat">
+                <span class="stat-value" id="avgRoughness">0</span>
+                <span class="stat-label">Avg Roughness</span>
+            </div>
+            <div class="stat">
+                <span class="stat-value" id="maxSpeed">0</span>
+                <span class="stat-label">Max Speed</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="js/map.js"></script>
+</body>
+</html>
