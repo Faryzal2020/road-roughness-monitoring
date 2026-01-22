@@ -83,8 +83,19 @@ async function loadTrucks() {
     }
 }
 
+// Edit mode state
+let editModeActive = false;
+
 // Switch view
 function switchView(viewName) {
+    // Reset edit mode if switching away from segments
+    if (editModeActive && currentView === 'segments') {
+        views.segments.disableDrawMode();
+        editModeActive = false;
+        document.getElementById('editModeBtn').textContent = '✏️ Edit Mode';
+        document.getElementById('editModeBtn').classList.remove('active');
+    }
+
     // Clear all views
     Object.values(views).forEach(v => v.clear());
 
@@ -190,8 +201,7 @@ document.getElementById('clearBtn').addEventListener('click', clearData);
 document.getElementById('generateBtn').addEventListener('click', generateSegments);
 document.getElementById('deleteAllBtn').addEventListener('click', deleteAllGenerated);
 
-// Edit mode toggle
-let editModeActive = false;
+// Edit mode toggle button handler
 document.getElementById('editModeBtn').addEventListener('click', () => {
     editModeActive = !editModeActive;
     const btn = document.getElementById('editModeBtn');
@@ -208,38 +218,8 @@ document.getElementById('editModeBtn').addEventListener('click', () => {
     }
 });
 
-// Reset edit mode when switching away from segments
-const originalSwitchView = switchView;
-function switchView(viewName) {
-    if (editModeActive && currentView === 'segments') {
-        views.segments.disableDrawMode();
-        editModeActive = false;
-        document.getElementById('editModeBtn').textContent = '✏️ Edit Mode';
-        document.getElementById('editModeBtn').classList.remove('active');
-    }
-
-    // Clear all views
-    Object.values(views).forEach(v => v.clear());
-
-    // Update tabs
-    document.querySelectorAll('.tab').forEach(tab => {
-        tab.classList.toggle('active', tab.dataset.view === viewName);
-    });
-
-    // Show/hide segment controls
-    const segmentControls = document.getElementById('segmentControls');
-    segmentControls.classList.toggle('hidden', viewName !== 'segments');
-
-    // Hide segment info panel
-    document.getElementById('segmentInfo').classList.add('hidden');
-
-    currentView = viewName;
-
-    // Auto-load data for new view
-    loadData();
-}
-
 // Initialize
 loadTrucks();
 loadData();
+
 
