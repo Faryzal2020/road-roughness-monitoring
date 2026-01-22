@@ -337,22 +337,26 @@ router.post('/:id/split', async (req, res) => {
             });
         }
 
-        // Calculate how to split - distribute points as evenly as possible
-        const basePointsPerSegment = Math.floor(pointCount / parts);
-        const remainder = pointCount % parts;
+        // Calculate how to split - divide by GAPS (edges) not points
+        // With N points, there are N-1 gaps
+        // To split into M parts, we distribute N-1 gaps across M segments
+        const totalGaps = pointCount - 1;  // e.g., 5 points = 4 gaps
+        const baseGapsPerSegment = Math.floor(totalGaps / parts);
+        const remainder = totalGaps % parts;
 
         // Create new segments
         const newSegments = [];
         let startIdx = 0;
 
         for (let i = 0; i < parts; i++) {
-            // Add one extra point to earlier segments if there's remainder
-            const pointsInThisSegment = basePointsPerSegment + (i < remainder ? 1 : 0);
-            // Each segment needs at least 2 points, and shares endpoint with next
-            const endIdx = Math.min(startIdx + pointsInThisSegment, pointCount - 1);
+            // Distribute extra gaps to earlier segments
+            const gapsInThisSegment = baseGapsPerSegment + (i < remainder ? 1 : 0);
 
-            if (endIdx <= startIdx) break;
+            if (gapsInThisSegment < 1) continue; // Skip if no gaps allocated
 
+            const endIdx = startIdx + gapsInThisSegment;
+
+            // Segment includes points from startIdx to endIdx (inclusive)
             const segmentCoords = coords.slice(startIdx, endIdx + 1);
 
             if (segmentCoords.length >= 2) {
