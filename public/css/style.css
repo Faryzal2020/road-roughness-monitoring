@@ -408,3 +408,121 @@ body {
         bottom: 120px;
     }
 }
+
+/* Segment Actions */
+.segment-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.btn-split {
+    padding: 4px 10px;
+    border: 1px solid #9b59b6;
+    border-radius: 6px;
+    background: transparent;
+    color: #9b59b6;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-split:hover {
+    background: #9b59b622;
+}
+
+/* Modal */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.modal-content {
+    background: #16213e;
+    padding: 25px 30px;
+    border-radius: 12px;
+    border: 1px solid #0f3460;
+    min-width: 300px;
+    text-align: center;
+}
+
+.modal-content h3 {
+    color: #00d9ff;
+    margin-bottom: 15px;
+}
+
+.modal-content p {
+    margin: 8px 0;
+    color: #ccc;
+}
+
+.split-input {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin: 15px 0;
+}
+
+.split-input input {
+    width: 80px;
+    padding: 8px;
+    border: 1px solid #0f3460;
+    border-radius: 6px;
+    background: #1a1a2e;
+    color: #eee;
+    text-align: center;
+    font-size: 1.1rem;
+}
+
+.split-input span {
+    color: #888;
+    font-size: 0.9rem;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+/* Edit Mode Help */
+.edit-help {
+    position: absolute;
+    top: 120px;
+    right: 20px;
+    background: rgba(22, 33, 62, 0.95);
+    padding: 15px 20px;
+    border-radius: 10px;
+    border: 1px solid #0f3460;
+    z-index: 1000;
+    backdrop-filter: blur(10px);
+    max-width: 350px;
+}
+
+.edit-help h4 {
+    color: #00d9ff;
+    margin-bottom: 10px;
+}
+
+.edit-help ul {
+    list-style: none;
+    font-size: 0.85rem;
+    line-height: 1.8;
+}
+
+.edit-help li {
+    color: #ccc;
+}
+
+.edit-help strong {
+    color: #00ff88;
+}

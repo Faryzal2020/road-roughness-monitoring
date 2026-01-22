@@ -300,6 +300,123 @@ router.delete('/:id', async (req, res) => {
 });
 
 /**
+ * POST /api/segments/:id/split
+ * Split a segment into multiple parts
+ * Body: { parts: number }
+ */
+router.post('/:id/split', async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const { parts } = req.body;
+
+        // Get the segment
+        const segment = await prisma.roadSegment.findUnique({
+            where: { id },
+            include: { road: true }
+        });
+
+        if (!segment) {
+            return res.status(404).json({ error: 'Segment not found' });
+        }
+
+        const geometry = segment.geometryJson;
+        if (!geometry || !geometry.coordinates || geometry.coordinates.length < 2) {
+            return res.status(400).json({ error: 'Invalid segment geometry' });
+        }
+
+        const coords = geometry.coordinates;
+        const pointCount = coords.length;
+
+        // Validate parts
+        const maxParts = pointCount - 1;
+        if (parts < 2 || parts > maxParts) {
+            return res.status(400).json({
+                error: `Parts must be between 2 and ${maxParts}`,
+                pointCount,
+                maxParts
+            });
+        }
+
+        // Calculate how to split - distribute points as evenly as possible
+        const basePointsPerSegment = Math.floor(pointCount / parts);
+        const remainder = pointCount % parts;
+
+        // Create new segments
+        const newSegments = [];
+        let startIdx = 0;
+
+        for (let i = 0; i < parts; i++) {
+            // Add one extra point to earlier segments if there's remainder
+            const pointsInThisSegment = basePointsPerSegment + (i < remainder ? 1 : 0);
+            // Each segment needs at least 2 points, and shares endpoint with next
+            const endIdx = Math.min(startIdx + pointsInThisSegment, pointCount - 1);
+
+            if (endIdx <= startIdx) break;
+
+            const segmentCoords = coords.slice(startIdx, endIdx + 1);
+
+            if (segmentCoords.length >= 2) {
+                // Calculate length
+                let lengthMeters = 0;
+                for (let j = 0; j < segmentCoords.length - 1; j++) {
+                    lengthMeters += haversineDistance(
+                        segmentCoords[j][1], segmentCoords[j][0],
+                        segmentCoords[j + 1][1], segmentCoords[j + 1][0]
+                    );
+                }
+
+                newSegments.push({
+                    coords: segmentCoords,
+                    lengthMeters
+                });
+            }
+
+            startIdx = endIdx; // Next segment starts at current endpoint
+        }
+
+        // Get next segment number for the road
+        const lastSegment = await prisma.roadSegment.findFirst({
+            where: { roadId: segment.roadId },
+            orderBy: { segmentNumber: 'desc' }
+        });
+        let segmentNumber = (lastSegment?.segmentNumber || 0);
+
+        // Create new segments in database
+        const createdSegments = [];
+        for (const newSeg of newSegments) {
+            segmentNumber++;
+
+            const created = await prisma.roadSegment.create({
+                data: {
+                    roadId: segment.roadId,
+                    segmentNumber,
+                    lengthMeters: newSeg.lengthMeters,
+                    geometryJson: {
+                        type: 'LineString',
+                        coordinates: newSeg.coords
+                    }
+                }
+            });
+            createdSegments.push(created);
+        }
+
+        // Delete the original segment
+        await prisma.roadSegment.delete({ where: { id } });
+
+        res.json({
+            success: true,
+            message: `Split into ${createdSegments.length} segments`,
+            originalId: id,
+            newSegments: createdSegments
+        });
+
+    } catch (err) {
+        console.error('Split segment error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
  * POST /api/segments/generate
  * Auto-generate segments from telemetry data
  * Body: { minPoints?, maxGap?, minSpeed? }

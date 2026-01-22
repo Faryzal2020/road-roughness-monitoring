@@ -11,6 +11,7 @@ export class SegmentsView {
         this.isDrawMode = false;
 
         this.initDrawControl();
+        this.initSplitModal();
     }
 
     initDrawControl() {
@@ -68,7 +69,7 @@ export class SegmentsView {
             });
         });
 
-        // Handle delete event
+        // Handle delete event - segments turn red when selected for deletion
         this.map.on(L.Draw.Event.DELETED, async (e) => {
             const layers = e.layers;
             layers.eachLayer(async (layer) => {
@@ -76,7 +77,114 @@ export class SegmentsView {
                     await this.deleteSegmentById(layer.segmentId);
                 }
             });
+            // Reload after all deletions
+            await this.loadPreservingView({});
         });
+
+        // Visual feedback when in delete mode - highlight segments on click
+        this.map.on(L.Draw.Event.DELETESTART, () => {
+            this.drawLayer.eachLayer(layer => {
+                layer.on('click', () => {
+                    layer.setStyle({ color: '#ff0000', weight: 10 });
+                });
+            });
+        });
+
+        this.map.on(L.Draw.Event.DELETESTOP, () => {
+            this.drawLayer.eachLayer(layer => {
+                layer.off('click');
+            });
+        });
+    }
+
+    initSplitModal() {
+        // Split button handler
+        document.getElementById('splitSegmentBtn').addEventListener('click', () => {
+            if (!this.selectedSegment) return;
+            this.openSplitModal();
+        });
+
+        // Modal handlers
+        document.getElementById('splitConfirmBtn').addEventListener('click', () => {
+            this.confirmSplit();
+        });
+
+        document.getElementById('splitCancelBtn').addEventListener('click', () => {
+            this.closeSplitModal();
+        });
+    }
+
+    openSplitModal() {
+        const segment = this.selectedSegment;
+        if (!segment) return;
+
+        const geometry = segment.geometryJson;
+        const pointCount = geometry?.coordinates?.length || 0;
+        const maxParts = pointCount - 1;
+
+        if (pointCount < 3) {
+            alert('Segment has too few points to split (need at least 3 points).');
+            return;
+        }
+
+        // Update modal content
+        document.getElementById('splitPointCount').textContent = pointCount;
+        document.getElementById('splitRange').textContent = `(2 - ${maxParts})`;
+
+        const input = document.getElementById('splitParts');
+        input.min = 2;
+        input.max = maxParts;
+        input.value = Math.min(2, maxParts);
+
+        // Show modal
+        document.getElementById('splitModal').classList.remove('hidden');
+    }
+
+    closeSplitModal() {
+        document.getElementById('splitModal').classList.add('hidden');
+    }
+
+    async confirmSplit() {
+        const segment = this.selectedSegment;
+        if (!segment) return;
+
+        const parts = parseInt(document.getElementById('splitParts').value);
+
+        // Save current view
+        const currentCenter = this.map.getCenter();
+        const currentZoom = this.map.getZoom();
+
+        try {
+            const response = await fetch(`/api/segments/${segment.id}/split`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ parts })
+            });
+
+            const result = await response.json();
+
+            if (result.error) {
+                alert('Split failed: ' + result.error);
+                return;
+            }
+
+            alert(result.message);
+            this.closeSplitModal();
+
+            // Hide segment info panel
+            document.getElementById('segmentInfo').classList.add('hidden');
+            this.selectedSegment = null;
+            this.selectedPolyline = null;
+
+            // Reload preserving view
+            await this.loadPreservingView({});
+
+            // Restore view
+            this.map.setView(currentCenter, currentZoom);
+
+        } catch (err) {
+            alert('Split failed: ' + err.message);
+        }
     }
 
     enableDrawMode() {
@@ -84,6 +192,8 @@ export class SegmentsView {
             this.map.addControl(this.drawControl);
             this.isDrawMode = true;
             this.moveSegmentsToDrawLayer();
+            // Show help
+            document.getElementById('editModeHelp').classList.remove('hidden');
         }
     }
 
@@ -91,6 +201,8 @@ export class SegmentsView {
         if (this.isDrawMode) {
             this.map.removeControl(this.drawControl);
             this.isDrawMode = false;
+            // Hide help
+            document.getElementById('editModeHelp').classList.add('hidden');
         }
     }
 
@@ -132,8 +244,8 @@ export class SegmentsView {
             const result = await response.json();
             if (result.error) throw new Error(result.error);
 
-            // Reload segments
-            await this.load({});
+            // Reload segments preserving view
+            await this.loadPreservingView({});
 
         } catch (err) {
             alert('Failed to create segment: ' + err.message);
@@ -178,6 +290,28 @@ export class SegmentsView {
         } else {
             this.display(segments);
         }
+    }
+
+    // Load segments but preserve current map view
+    async loadPreservingView(filters) {
+        const currentCenter = this.map.getCenter();
+        const currentZoom = this.map.getZoom();
+
+        const response = await fetch('/api/segments');
+        const segments = await response.json();
+
+        if (segments.error) throw new Error(segments.error);
+
+        this.segments = segments;
+
+        if (this.isDrawMode) {
+            this.moveSegmentsToDrawLayer();
+        } else {
+            this.displayPreservingView(segments);
+        }
+
+        // Restore view
+        this.map.setView(currentCenter, currentZoom);
     }
 
     display(segments) {
@@ -232,7 +366,8 @@ export class SegmentsView {
                     <strong>Segment #${segment.id}</strong><br>
                     <strong>Road:</strong> ${segment.roadName || 'Unknown'}<br>
                     <strong>Length:</strong> ${Math.round(segment.lengthMeters || 0)}m<br>
-                    <strong>Points:</strong> ${segment.pointCount || 0}<br>
+                    <strong>Geo Points:</strong> ${segment.geometryJson?.coordinates?.length || 0}<br>
+                    <strong>Telemetry Points:</strong> ${segment.pointCount || 0}<br>
                     ${segment.avgRoughness !== null ? `
                         <div class="roughness-value ${getRoughnessClass(segment.avgRoughness)}">
                             ${getRoughnessLabel(segment.avgRoughness)}: ${segment.avgRoughness}
@@ -246,6 +381,68 @@ export class SegmentsView {
         if (allBounds.length > 0) {
             this.map.fitBounds(allBounds, { padding: [50, 50] });
         }
+    }
+
+    // Display without changing view
+    displayPreservingView(segments) {
+        this.layer.clearLayers();
+
+        if (segments.length === 0) {
+            document.getElementById('totalPoints').textContent = '0';
+            document.getElementById('avgRoughness').textContent = '-';
+            document.getElementById('maxSpeed').textContent = '-';
+            return;
+        }
+
+        // Update stats
+        const totalPoints = segments.reduce((sum, s) => sum + (s.pointCount || 0), 0);
+        const validSegments = segments.filter(s => s.avgRoughness !== null);
+        const avgRoughness = validSegments.length > 0
+            ? Math.round(validSegments.reduce((sum, s) => sum + s.avgRoughness, 0) / validSegments.length)
+            : 0;
+
+        document.getElementById('totalPoints').textContent = segments.length + ' segments';
+        document.getElementById('avgRoughness').textContent = avgRoughness;
+        document.getElementById('maxSpeed').textContent = totalPoints + ' pts';
+
+        segments.forEach(segment => {
+            const geometry = segment.geometryJson;
+            if (!geometry || !geometry.coordinates || geometry.coordinates.length < 2) return;
+
+            const coords = geometry.coordinates.map(c => [c[1], c[0]]); // [lat, lon]
+
+            const color = segment.avgRoughness !== null
+                ? getRoughnessColor(segment.avgRoughness)
+                : '#888';
+
+            const polyline = L.polyline(coords, {
+                color: color,
+                weight: 8,
+                opacity: 0.9
+            }).addTo(this.layer);
+
+            // Click to select
+            polyline.on('click', (e) => {
+                L.DomEvent.stopPropagation(e);
+                this.selectSegment(segment, polyline);
+            });
+
+            // Popup
+            polyline.bindPopup(`
+                <div class="popup-content">
+                    <strong>Segment #${segment.id}</strong><br>
+                    <strong>Road:</strong> ${segment.roadName || 'Unknown'}<br>
+                    <strong>Length:</strong> ${Math.round(segment.lengthMeters || 0)}m<br>
+                    <strong>Geo Points:</strong> ${segment.geometryJson?.coordinates?.length || 0}<br>
+                    <strong>Telemetry Points:</strong> ${segment.pointCount || 0}<br>
+                    ${segment.avgRoughness !== null ? `
+                        <div class="roughness-value ${getRoughnessClass(segment.avgRoughness)}">
+                            ${getRoughnessLabel(segment.avgRoughness)}: ${segment.avgRoughness}
+                        </div>
+                    ` : '<em>No roughness data</em>'}
+                </div>
+            `);
+        });
     }
 
     selectSegment(segment, polyline) {
@@ -262,11 +459,14 @@ export class SegmentsView {
         const panel = document.getElementById('segmentInfo');
         panel.classList.remove('hidden');
 
+        const geoPoints = segment.geometryJson?.coordinates?.length || 0;
+
         document.getElementById('segmentDetails').innerHTML = `
             <p><strong>ID:</strong> ${segment.id}</p>
             <p><strong>Road:</strong> ${segment.roadName || 'Unknown'}</p>
             <p><strong>Length:</strong> ${Math.round(segment.lengthMeters || 0)}m</p>
-            <p><strong>Points:</strong> ${segment.pointCount || 0}</p>
+            <p><strong>Geo Points:</strong> ${geoPoints}</p>
+            <p><strong>Telemetry Points:</strong> ${segment.pointCount || 0}</p>
             <p><strong>Roughness:</strong> ${segment.avgRoughness ?? 'N/A'}</p>
         `;
 
@@ -276,6 +476,10 @@ export class SegmentsView {
 
     async deleteSegment(id) {
         if (!confirm(`Delete segment #${id}?`)) return;
+
+        // Save current view
+        const currentCenter = this.map.getCenter();
+        const currentZoom = this.map.getZoom();
 
         try {
             const response = await fetch(`/api/segments/${id}`, { method: 'DELETE' });
@@ -289,7 +493,10 @@ export class SegmentsView {
                 this.selectedSegment = null;
                 this.selectedPolyline = null;
 
-                await this.load({});
+                await this.loadPreservingView({});
+
+                // Restore view
+                this.map.setView(currentCenter, currentZoom);
             }
         } catch (err) {
             alert('Delete failed: ' + err.message);
@@ -303,5 +510,6 @@ export class SegmentsView {
         this.selectedSegment = null;
         this.selectedPolyline = null;
         document.getElementById('segmentInfo').classList.add('hidden');
+        document.getElementById('editModeHelp').classList.add('hidden');
     }
 }

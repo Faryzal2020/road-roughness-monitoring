@@ -104,7 +104,38 @@
         <div id="segmentInfo" class="segment-info hidden">
             <h4>Selected Segment</h4>
             <div id="segmentDetails"></div>
-            <button id="deleteSegmentBtn" class="btn-danger btn-sm">Delete Segment</button>
+            <div class="segment-actions">
+                <button id="splitSegmentBtn" class="btn-split btn-sm">✂️ Split Segment</button>
+                <button id="deleteSegmentBtn" class="btn-danger btn-sm">🗑️ Delete Segment</button>
+            </div>
+        </div>
+
+        <!-- Split Modal -->
+        <div id="splitModal" class="modal hidden">
+            <div class="modal-content">
+                <h3>Split Segment</h3>
+                <p>Segment has <strong id="splitPointCount">0</strong> points.</p>
+                <p>Split into how many parts?</p>
+                <div class="split-input">
+                    <input type="number" id="splitParts" min="2" max="10" value="2" />
+                    <span id="splitRange">(2 - 10)</span>
+                </div>
+                <div class="modal-actions">
+                    <button id="splitConfirmBtn" class="btn-primary btn-sm">Split</button>
+                    <button id="splitCancelBtn" class="btn-secondary btn-sm">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Mode Instructions -->
+        <div id="editModeHelp" class="edit-help hidden">
+            <h4>📝 Edit Mode</h4>
+            <ul>
+                <li><strong>Draw:</strong> Click polyline icon → click points on map → click last point to finish</li>
+                <li><strong>Edit:</strong> Click edit icon → drag vertices to adjust</li>
+                <li><strong>Delete:</strong> Click trash icon → click segments to mark for deletion (will highlight red)
+                    → click Save</li>
+            </ul>
         </div>
     </div>
 
