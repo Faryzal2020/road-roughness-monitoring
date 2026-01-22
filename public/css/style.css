@@ -169,6 +169,26 @@ body {
     box-shadow: 0 4px 15px rgba(155, 89, 182, 0.4);
 }
 
+.btn-edit {
+    padding: 6px 14px;
+    border: 1px solid #3498db;
+    border-radius: 6px;
+    background: transparent;
+    color: #3498db;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.btn-edit:hover {
+    background: #3498db22;
+}
+
+.btn-edit.active {
+    background: #3498db;
+    color: #fff;
+}
+
 .segment-controls {
     display: flex;
     gap: 10px;
@@ -177,6 +197,30 @@ body {
 
 .hidden {
     display: none !important;
+}
+
+/* Leaflet Draw Dark Theme */
+.leaflet-draw-toolbar a {
+    background-color: #16213e;
+    border-color: #0f3460;
+}
+
+.leaflet-draw-toolbar a:hover {
+    background-color: #1a1a2e;
+}
+
+.leaflet-draw-actions {
+    background-color: #16213e;
+}
+
+.leaflet-draw-actions a {
+    background-color: #16213e;
+    color: #eee;
+    border-color: #0f3460;
+}
+
+.leaflet-draw-actions a:hover {
+    background-color: #0f3460;
 }
 
 /* Map */
