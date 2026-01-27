@@ -9,9 +9,31 @@ export class SegmentsView {
         this.segments = [];
         this.drawControl = null;
         this.isDrawMode = false;
+        this.mapClickHandler = null;
 
         this.initDrawControl();
         this.initSplitModal();
+        this.initMapClickHandler();
+    }
+
+    initMapClickHandler() {
+        // Deselect segment when clicking on empty map area
+        this.mapClickHandler = (e) => {
+            // Only deselect if we have a selected segment and not in draw mode
+            if (this.selectedSegment && !this.isDrawMode) {
+                this.deselectSegment();
+            }
+        };
+        this.map.on('click', this.mapClickHandler);
+    }
+
+    deselectSegment() {
+        if (this.selectedPolyline) {
+            this.selectedPolyline.setStyle({ weight: 8 });
+        }
+        this.selectedSegment = null;
+        this.selectedPolyline = null;
+        document.getElementById('segmentInfo').classList.add('hidden');
     }
 
     initDrawControl() {
