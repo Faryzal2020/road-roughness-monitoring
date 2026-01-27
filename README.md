@@ -95,5 +95,5 @@ Road roughness monitoring system using Teltonika telemetry data.
 
 6.  **Run the App**:
     ```bash
-    bun run index.ts
+    bun run index.js
     ```
